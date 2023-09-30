@@ -3,9 +3,9 @@
 ;; Copyright (C) 2023 Drxaxc
 ;;
 ;; Author: Drxaxc
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Keywords: convenience help lisp local tools unix
-;; Homepage: https://github.com/shabi/myfont
+;; Homepage: https://github.com/mgcsysinfcat/myfont.el
 ;; Package-Requires: ((emacs "25.1"))
 ;;
 ;; This file is not part of GNU Emacs.
@@ -17,6 +17,7 @@
 ;; This package allows you to quickly switch between predefined fonts
 ;; in Emacs. The list of fonts is generated from the system's available
 ;; fonts. The default size for these fonts is 14, but this can be changed.
+;; Only for Unix-based system
 
 ;;; Code:
 
@@ -62,39 +63,50 @@
 
 (defun my-fonts-update (font-family &rest attributes)
   "Update the attributes for FONT-FAMILY based on provided ATTRIBUTES."
-  (let ((font (or (assoc font-family my-fonts) (assoc font-family my-fonts-mono))))
-    (if font
-        (setcdr font (append attributes (unless (assoc ':size attributes) (list ':size my-fonts-default-size))))
+  (let ((font-in-my-fonts (assoc font-family my-fonts))
+        (font-in-my-fonts-mono (assoc font-family my-fonts-mono))
+        (updated nil)) ; Added variable to track if any font was updated
+    (when font-in-my-fonts
+      (setcdr font-in-my-fonts (append attributes (unless (plist-member attributes ':size ) (list ':size my-fonts-default-size))))
+      (setq updated t))
+    (when font-in-my-fonts-mono
+      (setcdr font-in-my-fonts-mono (append attributes (unless (plist-member attributes ':size ) (list ':size my-fonts-default-size))))
+      (setq updated t))
+    (unless updated
       (error "Font not found: %s" font-family))))
+
+
 
 (defun my-fonts-set ()
   "Asks user whether to filter mono fonts, then sets font."
   (interactive)
-  (let ((use-doom (featurep 'doom)) ; 检查是否在 Doom 环境中
-        (is-mono (y-or-n-p "Filter Mono Fonts? ")))
-    (let* ((filtered-fonts (if is-mono my-fonts-mono my-fonts))
+  (let ((use-doom (featurep 'doom))) ; Settings specifically for doom
+    (let* ((is-mono (y-or-n-p "Filter Mono Fonts? "))
+           (filtered-fonts (if is-mono my-fonts-mono my-fonts))
            (font-names (mapcar 'car filtered-fonts))
-           (selected-font (completing-read "Select font: " font-names)))
-      (let ((font (cdr (assoc selected-font filtered-fonts))))
-        (if use-doom
-            (progn
-              (setq doom-font (font-spec :family selected-font :size (plist-get font ':size)))
-              (doom/reload-font))
-            (set-frame-font (font-spec :family selected-font :size (plist-get font ':size))))))))
+           (selected-font-name (completing-read "Select font: " font-names))
+           (font-properties (cdr (assoc selected-font-name filtered-fonts))))
+      (if use-doom
+          (progn
+            (setq doom-font (apply 'font-spec :family selected-font-name font-properties))
+            (doom/reload-font))
+          (set-frame-font (apply 'font-spec :family selected-font-name font-properties))))))
+
 
 (defun my-fonts-set-mono ()
   "Directly sets mono font."
   (interactive)
-  (let ((use-doom (featurep 'doom)) ; 检查是否在 Doom 环境中
+  (let ((use-doom (featurep 'doom)) ; Settings specifically for doom
         (mono-fonts my-fonts-mono))
     (let* ((font-names (mapcar 'car mono-fonts))
-           (selected-font (completing-read "Select font: " font-names)))
-      (let ((font (cdr (assoc selected-font mono-fonts))))
-        (if use-doom
-            (progn
-              (setq doom-font (font-spec :family selected-font :size (plist-get font ':size)))
-              (doom/reload-font))
-            (set-frame-font (font-spec :family selected-font :size (plist-get font ':size))))))))
+           (selected-font-name (completing-read "Select font: " font-names))
+           (font-properties (cdr (assoc selected-font-name mono-fonts))))
+      (if use-doom
+          (progn
+            (setq doom-font (apply 'font-spec :family selected-font-name font-properties))
+            (doom/reload-font))
+          (set-frame-font (apply 'font-spec :family selected-font-name font-properties))))))
+
 
 
 ;; Generate the font list immediately when the package is loaded
