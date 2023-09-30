@@ -1,9 +1,9 @@
-;;; my-fonts.el --- Easy switching between predefined fonts.--- -*- lexical-binding: t; -*-
+;;; myfont.el --- Easy switching between predefined fonts.--- -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2023 Drxaxc
 ;;
 ;; Author: Drxaxc
-;; Version: 0.0.2
+;; Version: 0.0.2-2
 ;; Keywords: convenience help lisp local tools unix
 ;; Homepage: https://github.com/mgcsysinfcat/myfont.el
 ;; Package-Requires: ((emacs "25.1"))
@@ -21,22 +21,22 @@
 
 ;;; Code:
 
-(defgroup my-fonts nil
+(defgroup myfont nil
   "Easy switching between predefined fonts."
   :group 'convenience
-  :prefix "my-fonts-")
+  :prefix "myfont-")
 
-(defcustom my-fonts-default-size 14
+(defcustom myfont-default-size 14
   "The default size for fonts."
   :type 'integer
-  :group 'my-fonts)
+  :group 'myfont)
 
-(defvar my-fonts nil
+(defvar myfont-alist nil
   "List of predefined fonts and their attributes.")
 
-(defvar my-fonts-mono nil
+(defvar myfont-alist-mono nil
   "List of predefined mono fonts.")
-(defun list-font-families ()
+(defun myfont-list-font-families ()
   "List font families from fc-list."
   (interactive)
   (let ((raw-output (shell-command-to-string "fc-list : family"))
@@ -47,42 +47,42 @@
           (push family families))))
     families))
 
-(defun my-fonts-generate ()
+(defun myfont-generate ()
   "Generate the my-fonts and my-fonts-mono variables."
   (interactive)
-  (setq my-fonts
+  (setq myfont-alist
         (mapcar (lambda (font-family)
                   (cons (decode-coding-string font-family 'utf-8)
-                        (list ':size my-fonts-default-size)))
-                (list-font-families)))
-  (setq my-fonts-mono
+                        (list ':size myfont-default-size)))
+                (myfont-list-font-families)))
+  (setq myfont-alist-mono
         (mapcar (lambda (font-family)
                   (cons (decode-coding-string font-family 'utf-8)
-                        (list ':size my-fonts-default-size)))
-                (seq-filter (lambda (font-family) (string-match-p "mono" font-family)) (list-font-families)))))
+                        (list ':size myfont-default-size)))
+                (seq-filter (lambda (font-family) (string-match-p "mono" font-family)) (myfont-list-font-families)))))
 
-(defun my-fonts-update (font-family &rest attributes)
+(defun myfont-update (font-family &rest attributes)
   "Update the attributes for FONT-FAMILY based on provided ATTRIBUTES."
-  (let ((font-in-my-fonts (assoc font-family my-fonts))
-        (font-in-my-fonts-mono (assoc font-family my-fonts-mono))
+  (let ((font-in-my-fonts (assoc font-family myfont-alist))
+        (font-in-my-fonts-mono (assoc font-family myfont-alist-mono))
         (updated nil)) ; Added variable to track if any font was updated
     (when font-in-my-fonts
-      (setcdr font-in-my-fonts (append attributes (unless (plist-member attributes ':size ) (list ':size my-fonts-default-size))))
+      (setcdr font-in-my-fonts (append attributes (unless (plist-member attributes ':size ) (list ':size myfont-default-size))))
       (setq updated t))
     (when font-in-my-fonts-mono
-      (setcdr font-in-my-fonts-mono (append attributes (unless (plist-member attributes ':size ) (list ':size my-fonts-default-size))))
+      (setcdr font-in-my-fonts-mono (append attributes (unless (plist-member attributes ':size ) (list ':size myfont-default-size))))
       (setq updated t))
     (unless updated
       (error "Font not found: %s" font-family))))
 
 
 
-(defun my-fonts-set ()
-  "Asks user whether to filter mono fonts, then sets font."
+(defun myfont-set ()
+  "Asks user whether to filter mono fonts, then set font."
   (interactive)
   (let ((use-doom (featurep 'doom))) ; Settings specifically for doom
     (let* ((is-mono (y-or-n-p "Filter Mono Fonts? "))
-           (filtered-fonts (if is-mono my-fonts-mono my-fonts))
+           (filtered-fonts (if is-mono myfont-alist-mono myfont-alist))
            (font-names (mapcar 'car filtered-fonts))
            (selected-font-name (completing-read "Select font: " font-names))
            (font-properties (cdr (assoc selected-font-name filtered-fonts))))
@@ -93,11 +93,11 @@
           (set-frame-font (apply 'font-spec :family selected-font-name font-properties))))))
 
 
-(defun my-fonts-set-mono ()
-  "Directly sets mono font."
+(defun myfont-set-mono ()
+  "Directly set mono font."
   (interactive)
   (let ((use-doom (featurep 'doom)) ; Settings specifically for doom
-        (mono-fonts my-fonts-mono))
+        (mono-fonts myfont-alist-mono))
     (let* ((font-names (mapcar 'car mono-fonts))
            (selected-font-name (completing-read "Select font: " font-names))
            (font-properties (cdr (assoc selected-font-name mono-fonts))))
@@ -110,8 +110,7 @@
 
 
 ;; Generate the font list immediately when the package is loaded
-(my-fonts-generate)
+(myfont-generate)
 
-;;; my-fonts.el ends here
-
-(provide 'my-fonts)
+(provide 'myfont)
+;;; myfont.el ends here
